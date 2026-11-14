@@ -1,0 +1,46 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import FormularioComponente from '../../../components/FormularioComponente.astro';
+import { datosDe, intentar } from '../../../lib/formularios.js';
+import { avisar } from '../../../lib/sesion.js';
+
+const CAMPOS = ['equipo', 'nombre', 'cantidad', 'referencia', 'enlace', 'estado'];
+const componente = Astro.locals.inv.componenteDe(Astro.params.id);
+if (!componente) return Astro.rewrite('/404');
+const volver = `/equipos/${componente.equipo}/editar#componentes`;
+
+let valores: Record<string, unknown> = { ...componente };
+let errores: Record<string, string[]> = {};
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  valores = datosDe(await Astro.request.formData(), CAMPOS);
+  const r = await intentar(() => Astro.locals.api.modificar('componentes', componente.id, valores));
+  if (r.resultado) {
+    avisar(Astro.cookies, Astro.url, `Se guardaron los cambios de «${r.resultado.nombre}».`);
+    return Astro.redirect(volver);
+  }
+  ({ error, campos: errores } = r);
+  Astro.response.status = 400;
+}
+---
+
+<Layout titulo="Editar componente">
+  <nav class="migas" aria-label="Ruta">
+    <a href={volver}>Volver al equipo</a>
+  </nav>
+  <section class="encabezado encabezado--compacto">
+    <p class="antetitulo">Editar componente</p>
+    <h1>{componente.nombre}</h1>
+  </section>
+  <div class="tarjeta">
+    {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+    <form method="post" class="formulario">
+      <FormularioComponente valores={valores} errores={errores} />
+      <div class="acciones">
+        <button type="submit" class="boton">Guardar cambios</button>
+        <a class="boton boton--secundario" href={volver}>Cancelar</a>
+      </div>
+    </form>
+  </div>
+</Layout>

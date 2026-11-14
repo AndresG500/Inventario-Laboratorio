@@ -1,0 +1,48 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import FormularioExperiencia from '../../../components/FormularioExperiencia.astro';
+import { legible } from '../../../data/inventario.js';
+import { datosDe, intentar } from '../../../lib/formularios.js';
+import { avisar } from '../../../lib/sesion.js';
+
+const CAMPOS = ['laboratorio', 'item', 'titulo', 'asignatura', 'asignatura_nueva', 'kits', 'temas', 'descripcion', 'observacion'];
+const exp = Astro.locals.inv.experienciaDe(Astro.params.id);
+if (!exp) return Astro.rewrite('/404');
+
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+let valores: Record<string, unknown> = { ...exp };
+
+if (Astro.request.method === 'POST') {
+  valores = datosDe(await Astro.request.formData(), CAMPOS);
+  const r = await intentar(() => Astro.locals.api.modificar('experiencias', exp.id, valores));
+  if (r.resultado) {
+    avisar(Astro.cookies, Astro.url, 'Se guardaron los cambios de la experiencia.');
+    return Astro.redirect(`/experiencias/${exp.id}`);
+  }
+  ({ error, campos: errores } = r);
+  Astro.response.status = 400;
+}
+---
+
+<Layout titulo="Editar experiencia">
+  <nav class="migas" aria-label="Ruta">
+    <a href={`/experiencias/${exp.id}`}>{legible(exp.titulo)}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Editar</span>
+  </nav>
+  <section class="encabezado encabezado--compacto">
+    <h1>Editar experiencia</h1>
+  </section>
+
+  <div class="tarjeta">
+    {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+    <form method="post" class="formulario">
+      <FormularioExperiencia valores={valores} errores={errores} />
+      <div class="acciones">
+        <button type="submit" class="boton">Guardar cambios</button>
+        <a class="boton boton--secundario" href={`/experiencias/${exp.id}`}>Cancelar</a>
+      </div>
+    </form>
+  </div>
+</Layout>

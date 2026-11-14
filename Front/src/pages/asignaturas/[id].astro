@@ -1,0 +1,54 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Cifra from '../../components/Cifra.astro';
+import ExperienciaCard from '../../components/ExperienciaCard.astro';
+
+const { asignaturaDe, equiposDeAsignatura, experienciasDe, laboratorios, resumen } = Astro.locals.inv;
+const asignatura = asignaturaDe(Astro.params.id);
+if (!asignatura) return Astro.rewrite('/404');
+const exps = experienciasDe(asignatura.id);
+const lista = equiposDeAsignatura(asignatura.id);
+const r = resumen(lista);
+const porLab = laboratorios
+  .map((l) => {
+    const propios = exps.filter((x) => String(x.laboratorio) === String(l.id));
+    return { ...l, experiencias: propios, r: resumen(lista.filter((e) => String(e.laboratorio) === String(l.id))) };
+  })
+  .filter((l) => l.experiencias.length > 0);
+---
+
+<Layout titulo={asignatura.nombre}>
+  <nav class="migas" aria-label="Ruta">
+    <a href="/">Inicio</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{asignatura.nombre}</span>
+  </nav>
+
+  <section class="encabezado encabezado--compacto">
+    <p class="antetitulo">Asignatura</p>
+    <h1>{asignatura.nombre}</h1>
+  </section>
+
+  <section class="cifras cifras--compactas">
+    <Cifra valor={exps.length} etiqueta="Experiencias" />
+    <Cifra valor={r.equipos} etiqueta="Equipos" />
+    <Cifra valor={r.unidades} etiqueta="Unidades" />
+    <Cifra valor={`${r.conEstado} de ${r.equipos}`} etiqueta="Con estado registrado" />
+  </section>
+
+  {porLab.map((l) => (
+    <section class="bloque">
+      <div class="bloque__cabecera">
+        <div>
+          <h2>{l.nombre}</h2>
+          <p class="bloque__sub">{l.experiencias.length} experiencias · {l.r.equipos} equipos · {l.r.unidades} unidades</p>
+        </div>
+        <a class="boton boton--secundario" href={`/inventario?asig=${asignatura.id}&lab=${l.id}`}>Ver sus equipos en la tabla</a>
+      </div>
+      <div class="rejilla rejilla--exp">
+        {l.experiencias.map((x) => <ExperienciaCard experiencia={x} />)}
+      </div>
+    </section>
+  ))}
+</Layout>
+

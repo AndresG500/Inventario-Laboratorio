@@ -36,3 +36,12 @@ staticfiles/
 .coverage
 coverage.xml
 htmlcov/
+
+# --- Front (Astro) ---
+node_modules/
+.astro/
+
+# --- IDE ---
+.idea/
+.vscode/
+!Front/.vscode/

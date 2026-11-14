@@ -1,0 +1,41 @@
+---
+import { legible, temasDe } from '../data/inventario.js';
+
+interface Props {
+  experiencia: {
+    id: number;
+    laboratorio: number;
+    titulo: string;
+    item: number;
+    kits: number | null;
+    temas: string | null;
+  };
+}
+
+const { experiencia } = Astro.props;
+const { equiposDe, laboratorioDe, resumen } = Astro.locals.inv;
+const lab = laboratorioDe(experiencia.laboratorio);
+const r = resumen(equiposDe(experiencia.id));
+const temas = temasDe(experiencia).slice(0, 3);
+const avance = r.equipos ? Math.round((r.conEstado / r.equipos) * 100) : 0;
+---
+
+<a href={`/experiencias/${experiencia.id}`} class="tarjeta-exp">
+  <span class="etiqueta">{lab?.nombre} · Ítem {experiencia.item}</span>
+  <h3 class="tarjeta-exp__titulo">{legible(experiencia.titulo)}</h3>
+  {temas.length > 0 && (
+    <ul class="temas temas--compacto">
+      {temas.map((t) => <li>{t}</li>)}
+    </ul>
+  )}
+  <dl class="tarjeta-exp__datos">
+    <div><dt>Equipos</dt><dd>{r.equipos}</dd></div>
+    <div><dt>Kits</dt><dd>{experiencia.kits ?? '—'}</dd></div>
+  </dl>
+  {r.equipos > 0 && (
+    <div class="avance">
+      <div class="avance__barra" aria-hidden="true"><span style={`width:${avance}%`}></span></div>
+      <span>{r.conEstado} de {r.equipos} con estado</span>
+    </div>
+  )}
+</a>

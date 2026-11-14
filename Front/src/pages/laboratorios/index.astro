@@ -1,0 +1,86 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Campo from '../../components/Campo.astro';
+import { datosDe, intentar } from '../../lib/formularios.js';
+import { avisar } from '../../lib/sesion.js';
+
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+let valores: Record<string, string> = { nombre: '' };
+
+if (Astro.request.method === 'POST') {
+  valores = datosDe(await Astro.request.formData(), ['nombre']);
+  const r = await intentar(() => Astro.locals.api.crear('laboratorios', valores));
+  if (r.resultado) {
+    avisar(Astro.cookies, Astro.url, `Se creó el laboratorio «${r.resultado.nombre}». Ahora puedes añadirle experiencias.`);
+    return Astro.redirect(`/laboratorios/${r.resultado.id}`);
+  }
+  ({ error, campos: errores } = r);
+  Astro.response.status = 400;
+}
+
+const { laboratorios, experienciasDeLaboratorio, equiposDeLaboratorio, resumen } = Astro.locals.inv;
+const filas = laboratorios.map((l) => ({
+  ...l,
+  experiencias: experienciasDeLaboratorio(l.id).length,
+  r: resumen(equiposDeLaboratorio(l.id)),
+}));
+---
+
+<Layout titulo="Laboratorios">
+  <section class="encabezado encabezado--compacto">
+    <h1>Mis laboratorios</h1>
+    <p class="encabezado__texto">Cada laboratorio agrupa sus experiencias, y cada experiencia sus equipos.</p>
+  </section>
+
+  {filas.length > 0 ? (
+    <section class="bloque">
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Laboratorio</th>
+              <th scope="col" class="num">Experiencias</th>
+              <th scope="col" class="num">Equipos</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((l) => (
+              <tr>
+                <td data-titulo="Laboratorio">
+                  <a class="tabla__nombre" href={`/laboratorios/${l.id}`}>{l.nombre}</a>
+                  {l.hoja && <span class="tabla__sub">Cargado desde: {l.hoja}</span>}
+                </td>
+                <td data-titulo="Experiencias" class="num">{l.experiencias}</td>
+                <td data-titulo="Equipos" class="num">{l.r.equipos}</td>
+                <td data-titulo="Acciones">
+                  <div class="acciones">
+                    <a class="boton boton--secundario boton--pequeno" href={`/laboratorios/${l.id}`}>Abrir</a>
+                    <a class="boton boton--peligro-suave boton--pequeno" href={`/eliminar?tipo=laboratorio&id=${l.id}`}>Eliminar</a>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ) : (
+    <div class="mensaje mensaje--info">
+      <p>Todavía no tienes laboratorios. Crea el primero con el formulario de abajo, o <a href="/importar">carga un archivo de Excel</a>.</p>
+    </div>
+  )}
+
+  <section class="tarjeta" id="nuevo" style="max-width:40rem">
+    <h2>Añadir un laboratorio</h2>
+    {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+    <form method="post" class="formulario">
+      <Campo nombre="nombre" etiqueta="Nombre del laboratorio" requerido maxlength="150" valor={valores.nombre}
+        errores={errores} ayuda="Por ejemplo: Laboratorio PASCO." />
+      <div class="acciones">
+        <button type="submit" class="boton">Crear laboratorio</button>
+      </div>
+    </form>
+  </section>
+</Layout>

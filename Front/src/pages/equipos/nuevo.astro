@@ -1,0 +1,62 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FormularioEquipo from '../../components/FormularioEquipo.astro';
+import { datosDe, intentar } from '../../lib/formularios.js';
+import { avisar } from '../../lib/sesion.js';
+
+const CAMPOS = ['experiencia', 'nombre', 'marca', 'referencia', 'cantidad', 'estado', 'imagen', 'enlace'];
+const { experiencias, experienciaDe } = Astro.locals.inv;
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+let valores: Record<string, unknown> = {
+  experiencia: Astro.url.searchParams.get('experiencia') ?? (experiencias.length === 1 ? experiencias[0].id : ''),
+  cantidad: experienciaDe(Astro.url.searchParams.get('experiencia'))?.kits ?? '',
+};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  valores = datosDe(f, CAMPOS);
+  const r = await intentar(() => Astro.locals.api.crear('equipos', valores));
+  if (r.resultado) {
+    if (f.get('otro') === '1') {
+      avisar(Astro.cookies, Astro.url, `Se guardó «${r.resultado.nombre}». Puedes añadir otro equipo.`);
+      return Astro.redirect(`/equipos/nuevo?experiencia=${r.resultado.experiencia}`);
+    }
+    avisar(Astro.cookies, Astro.url, `Se guardó el equipo «${r.resultado.nombre}».`);
+    return Astro.redirect(`/experiencias/${r.resultado.experiencia}`);
+  }
+  ({ error, campos: errores } = r);
+  Astro.response.status = 400;
+}
+
+const exp = experienciaDe(valores.experiencia);
+const volver = exp ? `/experiencias/${exp.id}` : '/inventario';
+---
+
+<Layout titulo="Nuevo equipo">
+  <section class="encabezado encabezado--compacto">
+    <h1>Nuevo equipo</h1>
+    <p class="encabezado__texto">Completa los datos que tengas. Solo la experiencia y el nombre son obligatorios.</p>
+  </section>
+
+  {experiencias.length === 0 ? (
+    <div class="mensaje mensaje--info">
+      <p>
+        Cada equipo pertenece a una experiencia, y todavía no tienes ninguna.
+        <a href="/experiencias/nueva">Crea una experiencia primero</a>.
+      </p>
+    </div>
+  ) : (
+    <div class="tarjeta">
+      {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+      <form method="post" class="formulario">
+        <FormularioEquipo valores={valores} errores={errores} />
+        <div class="acciones">
+          <button type="submit" class="boton">Guardar equipo</button>
+          <button type="submit" class="boton boton--secundario" name="otro" value="1">Guardar y añadir otro</button>
+          <a class="boton boton--secundario" href={volver}>Cancelar</a>
+        </div>
+      </form>
+    </div>
+  )}
+</Layout>

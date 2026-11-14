@@ -1,0 +1,73 @@
+---
+// Formulario para subir un Excel. Se envía a /importar, que lo reenvía a Django.
+interface Props {
+  laboratorios: { id: number; nombre: string }[];
+}
+
+const { laboratorios } = Astro.props;
+const hayLabs = laboratorios.length > 0;
+---
+
+<form class="formulario" method="post" action="/importar" enctype="multipart/form-data" id="form-importar">
+  <div class="campo">
+    <label for="archivo">Archivo de Excel (.xlsx)</label>
+    <p class="campo__ayuda" id="archivo-ayuda">
+      Debe tener las columnas ÍTEM, EXPERIENCIA y PRODUCTO. Las columnas ASIGNATURA, DENOMINACIÓN, CANTIDAD,
+      REFERENCIA, OBSERVACIÓN, MARCA y ESTADO son opcionales.
+    </p>
+    <input id="archivo" name="archivo" type="file" required aria-describedby="archivo-ayuda"
+      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+  </div>
+
+  <div class="formulario__fila">
+    <div class="campo" hidden={!hayLabs}>
+      <label for="laboratorio">¿A qué laboratorio pertenece?</label>
+      <select id="laboratorio" name="laboratorio">
+        {laboratorios.map((l, i) => <option value={l.id} selected={i === 0}>{l.nombre}</option>)}
+        <option value="__nuevo" selected={!hayLabs}>Es un laboratorio nuevo</option>
+      </select>
+    </div>
+    <div class="campo" id="campo-nuevo" hidden={hayLabs}>
+      <label for="laboratorio_nuevo">Nombre del laboratorio</label>
+      <p class="campo__ayuda" id="nuevo-ayuda">Por ejemplo: PASCO, Vernier o Física 2.</p>
+      <input id="laboratorio_nuevo" name="laboratorio_nuevo" type="text" maxlength="80" required={!hayLabs} aria-describedby="nuevo-ayuda" />
+    </div>
+  </div>
+
+  {hayLabs && (
+    <label class="casilla">
+      <input type="checkbox" name="sincronizar" value="1" />
+      <span>
+        <strong>Reemplazar el laboratorio con el contenido del archivo</strong>
+        <small>Se eliminan las experiencias y equipos del laboratorio que no estén en el Excel. Si no la marcas, solo se agregan y actualizan datos.</small>
+      </span>
+    </label>
+  )}
+
+  <p class="nota">Las celdas vacías del Excel no borran lo que ya está guardado (imágenes, estados o referencias que completaste a mano).</p>
+
+  <div class="acciones">
+    <button type="submit" class="boton" id="boton-importar">Cargar archivo</button>
+  </div>
+</form>
+
+<script>
+  const form = document.getElementById('form-importar') as HTMLFormElement;
+  const select = document.getElementById('laboratorio') as HTMLSelectElement;
+  const campoNuevo = document.getElementById('campo-nuevo')!;
+  const inputNuevo = document.getElementById('laboratorio_nuevo') as HTMLInputElement;
+  const boton = document.getElementById('boton-importar') as HTMLButtonElement;
+
+  function actualizar() {
+    const nuevo = select.value === '__nuevo';
+    campoNuevo.hidden = !nuevo;
+    inputNuevo.required = nuevo;
+  }
+  select.addEventListener('change', actualizar);
+  actualizar();
+
+  form.addEventListener('submit', () => {
+    boton.disabled = true;
+    boton.textContent = 'Cargando el archivo, espera un momento…';
+  });
+</script>

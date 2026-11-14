@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Campo from '../components/Campo.astro';
+import { dominiosRegistro, registrarse } from '../lib/api.js';
+import { intentar } from '../lib/formularios.js';
+import { avisar, guardarSesion } from '../lib/sesion.js';
+
+let nombre = '';
+let email = '';
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  nombre = String(f.get('nombre') ?? '').trim();
+  email = String(f.get('email') ?? '').trim();
+  const r = await intentar(() =>
+    registrarse({ nombre, email, password: String(f.get('password') ?? ''), repetir: String(f.get('repetir') ?? '') }),
+  );
+  if (r.resultado) {
+    guardarSesion(Astro.cookies, Astro.url, r.resultado.token);
+    avisar(Astro.cookies, Astro.url, `Bienvenido, ${r.resultado.usuario.nombre}. Tu cuenta quedó creada.`);
+    return Astro.redirect('/');
+  }
+  error = r.error;
+  errores = r.campos;
+  Astro.response.status = 400;
+}
+
+// Dominios permitidos, para explicarlo en el formulario (si falla la consulta, simplemente no se muestra).
+const dominios: string[] = (await intentar(dominiosRegistro)).resultado?.dominios ?? [];
+const textoDominios = dominios.map((d) => `@${d}`).join(' o ');
+---
+
+<Layout titulo="Crear una cuenta" sinMenu>
+  <div class="tarjeta-login">
+    <h1>Crear una cuenta</h1>
+    <p>Con tu cuenta podrás registrar y consultar el inventario de tus laboratorios.</p>
+
+    {error && (
+      <div class="mensaje mensaje--error" role="alert">
+        <strong>{error}</strong>
+      </div>
+    )}
+
+    <form method="post" class="formulario">
+      <Campo nombre="nombre" etiqueta="Nombre completo" requerido autocomplete="name" maxlength="150" valor={nombre}
+        errores={errores} autofocus={!nombre} />
+      <Campo nombre="email" etiqueta="Correo electrónico" tipo="email" requerido autocomplete="username" maxlength="150"
+        valor={email} errores={errores}
+        ayuda={textoDominios ? `Usa tu correo institucional (${textoDominios}).` : undefined} />
+      <Campo nombre="password" etiqueta="Contraseña" tipo="password" requerido autocomplete="new-password" errores={errores}
+        ayuda="Mínimo 6 caracteres. Pueden ser letras, números o ambos." />
+      <Campo nombre="repetir" etiqueta="Confirmar contraseña" tipo="password" requerido autocomplete="new-password"
+        errores={errores} />
+      <label class="casilla">
+        <input type="checkbox" data-mostrar="password,repetir" />
+        <span>Mostrar las contraseñas</span>
+      </label>
+      <button type="submit" class="boton">Crear cuenta</button>
+    </form>
+
+    <hr style="border:0;border-top:1px solid var(--borde);margin:1.5rem 0" />
+    <p><strong>¿Ya tienes una cuenta?</strong></p>
+    <a class="boton boton--secundario" href="/login">Iniciar sesión</a>
+  </div>
+</Layout>
+
+<script>
+  // Casillas "Mostrar las contraseñas"
+  for (const casilla of document.querySelectorAll<HTMLInputElement>('[data-mostrar]')) {
+    casilla.addEventListener('change', () => {
+      for (const nombre of casilla.dataset.mostrar!.split(',')) {
+        const campo = document.querySelector<HTMLInputElement>(`input[name="${nombre}"]`);
+        if (campo) campo.type = casilla.checked ? 'text' : 'password';
+      }
+    });
+  }
+</script>

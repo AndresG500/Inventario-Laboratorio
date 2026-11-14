@@ -1,0 +1,126 @@
+---
+// Panel lateral con el detalle de un equipo. Se abre con cualquier elemento que tenga data-equipo="<id>".
+const { equipos, fichaEquipo } = Astro.locals.inv;
+
+const fichas = Object.fromEntries(equipos.map((e) => [e.id, fichaEquipo(e)]));
+const json = JSON.stringify(fichas).replace(/</g, '\\u003c');
+---
+
+<dialog class="panel" id="panel-equipo" aria-labelledby="panel-titulo">
+  <div class="panel__contenido">
+  <div class="panel__cabecera">
+    <div>
+      <p class="panel__antetitulo" data-campo="laboratorio"></p>
+      <h2 id="panel-titulo" data-campo="nombre"></h2>
+    </div>
+    <button type="button" class="boton boton--secundario boton--pequeno" data-cerrar>Cerrar</button>
+  </div>
+  <div class="panel__imagen" data-campo="imagen"></div>
+  <dl class="ficha">
+    <div><dt>Estado</dt><dd data-campo="estado"></dd></div>
+    <div><dt>Cantidad</dt><dd data-campo="cantidad"></dd></div>
+    <div><dt>Marca</dt><dd data-campo="marca"></dd></div>
+    <div><dt>Referencia</dt><dd data-campo="referencia"></dd></div>
+    <div class="ficha__ancho"><dt>Experiencia</dt><dd data-campo="experiencia"></dd></div>
+    <div class="ficha__ancho"><dt>Origen</dt><dd data-campo="fila"></dd></div>
+  </dl>
+  <section class="panel__seccion" data-seccion="componentes" hidden>
+    <h3>Componentes</h3>
+    <ul class="componentes" data-campo="componentes"></ul>
+  </section>
+  <div class="acciones">
+    <a class="boton" data-campo="editar">Editar equipo</a>
+    <a class="boton boton--peligro-suave" data-campo="eliminar">Eliminar equipo</a>
+  </div>
+  <a data-campo="enlace" target="_blank" rel="noopener" hidden>Ver producto en el sitio del fabricante (se abre en otra pestaña)</a>
+  </div>
+</dialog>
+
+<script type="application/json" id="datos-equipos" set:html={json} />
+
+<script>
+  type Componente = { cantidad: number | null; nombre: string; referencia: string | null; estado: string | null; enlace: string | null };
+  type Ficha = {
+    nombre: string | null; marca: string | null; referencia: string | null; cantidad: number | null;
+    estado: string; tono: string; imagen: string | null; enlace: string | null; componentes: Componente[];
+    experiencia: string; experienciaId: number; laboratorio: string; fila: number | null; editar: string;
+  };
+
+  const panel = document.getElementById('panel-equipo') as HTMLDialogElement;
+  const fichas: Record<string, Ficha> = JSON.parse(document.getElementById('datos-equipos')!.textContent || '{}');
+  const campo = (n: string) => panel.querySelector<HTMLElement>(`[data-campo="${n}"]`)!;
+
+  function texto(n: string, valor: string | number | null | undefined, vacio = 'Sin dato') {
+    const el = campo(n);
+    el.textContent = valor === null || valor === undefined || valor === '' ? vacio : String(valor);
+    el.classList.toggle('sin-dato', valor === null || valor === undefined || valor === '');
+  }
+
+  function abrir(id: string) {
+    const f = fichas[id];
+    if (!f) return;
+    texto('laboratorio', f.laboratorio);
+    texto('nombre', f.nombre, 'Nombre sin registrar');
+    texto('cantidad', f.cantidad);
+    texto('marca', f.marca);
+    texto('referencia', f.referencia);
+    texto('fila', f.fila ? `Excel, fila ${f.fila}` : 'Registrado a mano');
+    (campo('editar') as HTMLAnchorElement).href = f.editar;
+    (campo('eliminar') as HTMLAnchorElement).href =
+      `/eliminar?tipo=equipo&id=${id}&volver=${encodeURIComponent(location.pathname + location.search)}`;
+
+    const estado = campo('estado');
+    estado.innerHTML = '';
+    const badge = document.createElement('span');
+    badge.className = `estado estado--${f.tono}`;
+    badge.textContent = f.estado;
+    estado.append(badge);
+
+    const exp = campo('experiencia');
+    exp.innerHTML = '';
+    const a = document.createElement('a');
+    a.href = `/experiencias/${f.experienciaId}`;
+    a.textContent = f.experiencia;
+    exp.append(a);
+
+    const img = campo('imagen');
+    img.innerHTML = '';
+    img.hidden = !f.imagen;
+    if (f.imagen) {
+      const i = document.createElement('img');
+      i.src = f.imagen;
+      i.alt = f.nombre ?? '';
+      i.onerror = () => (img.hidden = true);
+      img.append(i);
+    }
+
+    const lista = campo('componentes');
+    lista.innerHTML = '';
+    panel.querySelector<HTMLElement>('[data-seccion="componentes"]')!.hidden = f.componentes.length === 0;
+    for (const c of f.componentes) {
+      const li = document.createElement('li');
+      const nombre = document.createElement(c.enlace ? 'a' : 'span');
+      nombre.textContent = `${c.cantidad ?? 1} × ${c.nombre}`;
+      if (c.enlace) Object.assign(nombre, { href: c.enlace, target: '_blank', rel: 'noopener' });
+      const ref = document.createElement('code');
+      ref.textContent = c.referencia ?? '';
+      li.append(nombre, ref);
+      lista.append(li);
+    }
+
+    const enlace = campo('enlace') as HTMLAnchorElement;
+    enlace.hidden = !f.enlace;
+    if (f.enlace) enlace.href = f.enlace;
+
+    panel.showModal();
+  }
+
+  document.addEventListener('click', (ev) => {
+    const disparador = (ev.target as HTMLElement).closest<HTMLElement>('[data-equipo]');
+    if (disparador) abrir(disparador.dataset.equipo!);
+  });
+  panel.addEventListener('click', (ev) => {
+    // Cerrar con el botón o al hacer clic en el fondo oscuro.
+    if ((ev.target as HTMLElement).closest('[data-cerrar]') || ev.target === panel) panel.close();
+  });
+</script>

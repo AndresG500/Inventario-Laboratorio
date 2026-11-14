@@ -1,0 +1,49 @@
+---
+// Campo de formulario con etiqueta, ayuda y mensaje de error.
+// Los errores llegan de Django con el nombre del campo, por ejemplo { nombre: ['Este campo es obligatorio.'] }.
+interface Opcion {
+  valor: string | number;
+  texto: string;
+}
+
+interface Props {
+  nombre: string;
+  etiqueta: string;
+  tipo?: 'text' | 'email' | 'password' | 'number' | 'url' | 'textarea' | 'select' | 'file';
+  valor?: unknown;
+  errores?: Record<string, string[]>;
+  ayuda?: string;
+  requerido?: boolean;
+  /** Para tipo="select". */
+  opciones?: Opcion[];
+  /** Texto de la opción vacía de un select; si no se indica, no hay opción vacía. */
+  vacio?: string;
+  [atributo: string]: unknown;
+}
+
+const { nombre, etiqueta, tipo = 'text', valor, errores = {}, ayuda, requerido = false, opciones = [], vacio, ...resto } = Astro.props;
+const id = `campo-${nombre}`;
+const error = errores[nombre]?.join(' ');
+const describe = [ayuda && `${id}-ayuda`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+const texto = valor === null || valor === undefined ? '' : String(valor);
+const comunes = { id, name: nombre, required: requerido, 'aria-describedby': describe, 'aria-invalid': error ? 'true' : undefined, ...resto };
+---
+
+<div class:list={['campo', { 'campo--error': error }]}>
+  <label for={id}>
+    {etiqueta}
+    {!requerido && <span class="campo__opcional">(opcional)</span>}
+  </label>
+  {ayuda && <p class="campo__ayuda" id={`${id}-ayuda`}>{ayuda}</p>}
+  {error && <p class="campo__error" id={`${id}-error`}>{error}</p>}
+  {tipo === 'textarea' ? (
+    <textarea {...comunes} rows="4">{texto}</textarea>
+  ) : tipo === 'select' ? (
+    <select {...comunes}>
+      {vacio !== undefined && <option value="">{vacio}</option>}
+      {opciones.map((o) => <option value={o.valor} selected={String(o.valor) === texto}>{o.texto}</option>)}
+    </select>
+  ) : (
+    <input type={tipo} value={tipo === 'password' || tipo === 'file' ? undefined : texto} {...comunes} />
+  )}
+</div>

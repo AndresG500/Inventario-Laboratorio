@@ -1,0 +1,263 @@
+/* Variables, estilos base y estructura general.
+   Diseño sobrio institucional pensado para leerse con comodidad:
+   letra de 18 px, contraste alto, botones grandes y siempre con texto. */
+:root {
+  --fondo: #f3f4f6;
+  --superficie: #ffffff;
+  --superficie-2: #f7f8fa;
+  --borde: #d5dae2;
+  --borde-campo: #7b8596;
+  --texto: #171c26;
+  --texto-2: #444c5c;
+  --texto-3: #586174;
+
+  --institucional: #15325c;
+  --institucional-2: #1d4277;
+  --acento: #1f4f8f;
+  --acento-hover: #163c6e;
+  --acento-suave: #e7eef8;
+  --foco: #f0a500;
+
+  --ok: #1b6236;
+  --ok-suave: #e1f1e6;
+  --aviso: #7a4f00;
+  --aviso-suave: #fcefd2;
+  --malo: #9d2626;
+  --malo-suave: #fbe4e4;
+  --baja: #454b56;
+  --baja-suave: #e6e8ec;
+  --vacio: #586174;
+  --vacio-suave: #eef0f3;
+
+  --radio: 8px;
+  --radio-sm: 6px;
+  --sombra: 0 1px 2px rgb(16 24 40 / 6%), 0 2px 8px rgb(16 24 40 / 5%);
+  --fuente: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-titulos: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --mono: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 1rem;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--fuente);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--fuente-titulos);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--texto);
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: clamp(1.9rem, 4vw, 2.5rem);
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--acento);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--acento-hover);
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+}
+
+img {
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.saltar {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10;
+  background: var(--foco);
+  color: #000;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  border-radius: var(--radio-sm);
+}
+
+.saltar:focus {
+  top: 1rem;
+}
+
+/* ------------------------------------------------------------------ estructura */
+.contenedor {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.barra {
+  background: var(--institucional);
+  color: #fff;
+  border-bottom: 4px solid var(--foco);
+}
+
+.barra__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding-block: 0.9rem;
+}
+
+.marca {
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.marca:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.marca strong {
+  font-family: var(--fuente-titulos);
+  font-size: 1.35rem;
+}
+
+.marca small {
+  font-size: 0.95rem;
+  color: #d3dcea;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.nav__enlace {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radio-sm);
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav__enlace:hover {
+  color: #fff;
+  background: var(--institucional-2);
+  text-decoration: underline;
+}
+
+.nav__enlace.is-activo {
+  background: #fff;
+  color: var(--institucional);
+}
+
+.subbarra {
+  background: var(--institucional-2);
+  color: #e6ecf5;
+  font-size: 1rem;
+}
+
+.subbarra__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 1.25rem;
+  padding-block: 0.35rem;
+}
+
+.subbarra a,
+.subbarra button {
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.subbarra form {
+  margin: 0;
+}
+
+.principal {
+  flex: 1;
+  padding-block: 2rem 3rem;
+}
+
+.pie {
+  border-top: 1px solid var(--borde);
+  color: var(--texto-2);
+  font-size: 1rem;
+  padding-block: 1.25rem 2rem;
+}
+
+/* Página sin menú (inicio de sesión) */
+.pagina-sola {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.25rem;
+}

@@ -1,0 +1,15 @@
+---
+interface Props {
+  valor: string | number;
+  etiqueta: string;
+  nota?: string;
+}
+
+const { valor, etiqueta, nota } = Astro.props;
+---
+
+<div class="cifra">
+  <span class="cifra__valor">{valor}</span>
+  <span class="cifra__etiqueta">{etiqueta}</span>
+  {nota && <span class="cifra__nota">{nota}</span>}
+</div>

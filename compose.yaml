@@ -33,8 +33,9 @@ services:
       PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT}
     restart: unless-stopped
 
+  # Backend: proyecto Django (carpeta Backend/)
   web:
-    build: .
+    build: ./Backend
     container_name: django
     depends_on:
       postgres:
@@ -44,13 +45,31 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
     volumes:
-      - .:/app
+      - ./Backend:/app
     ports:
       - "8000:8000"
     restart: unless-stopped
 
-    
+  # Front: proyecto Astro (carpeta Front/)
+  frontend:
+    build: ./Front
+    container_name: astro
+    depends_on:
+      - web
+    environment:
+      # Dentro de la red de Docker, Django se alcanza por el nombre del servicio
+      DJANGO_API_URL: http://web:8000
+    volumes:
+      - ./Front:/app
+      # Evita que el volumen de arriba tape los node_modules instalados en la imagen
+      - /app/node_modules
+    ports:
+      - "4321:4321"
+    restart: unless-stopped
+
+# Nombres fijos: se reutilizan los volúmenes que ya existían, así no se pierden los datos.
 volumes:
   postgres_data:
+    name: inventario_postgres_data
   pgadmin_data:
-
+    name: inventario_pgadmin_data

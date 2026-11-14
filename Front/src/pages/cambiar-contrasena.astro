@@ -1,0 +1,68 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Campo from '../components/Campo.astro';
+import { intentar } from '../lib/formularios.js';
+import { avisar } from '../lib/sesion.js';
+
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const datos = {
+    actual: String(f.get('actual') ?? ''),
+    nueva: String(f.get('nueva') ?? ''),
+    repetir: String(f.get('repetir') ?? ''),
+  };
+  const r = await intentar(() => Astro.locals.api.cambiarContrasena(datos));
+  if (r.resultado) {
+    avisar(Astro.cookies, Astro.url, 'Tu contraseña se cambió correctamente.');
+    return Astro.redirect('/');
+  }
+  error = r.error;
+  errores = r.campos;
+  Astro.response.status = 400;
+}
+---
+
+<Layout titulo="Cambiar contraseña">
+  <section class="encabezado encabezado--compacto">
+    <h1>Cambiar contraseña</h1>
+    <p class="encabezado__texto">Escribe tu contraseña actual y luego la nueva dos veces.</p>
+  </section>
+
+  {error && (
+    <div class="mensaje mensaje--error" role="alert">
+      <strong>{error}</strong>
+    </div>
+  )}
+
+  <div class="tarjeta" style="max-width:40rem">
+    <form method="post" class="formulario">
+      <Campo nombre="actual" etiqueta="Contraseña actual" tipo="password" requerido
+        autocomplete="current-password" errores={errores} />
+      <Campo nombre="nueva" etiqueta="Contraseña nueva" tipo="password" requerido autocomplete="new-password" errores={errores}
+        ayuda="Mínimo 6 caracteres. Pueden ser letras, números o ambos." />
+      <Campo nombre="repetir" etiqueta="Repite la contraseña nueva" tipo="password" requerido autocomplete="new-password" errores={errores} />
+      <label class="casilla">
+        <input type="checkbox" data-mostrar="actual,nueva,repetir" />
+        <span>Mostrar las contraseñas</span>
+      </label>
+      <div class="acciones">
+        <button type="submit" class="boton">Guardar contraseña</button>
+        <a class="boton boton--secundario" href="/">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</Layout>
+
+<script>
+  for (const casilla of document.querySelectorAll<HTMLInputElement>('[data-mostrar]')) {
+    casilla.addEventListener('change', () => {
+      for (const nombre of casilla.dataset.mostrar!.split(',')) {
+        const campo = document.querySelector<HTMLInputElement>(`input[name="${nombre}"]`);
+        if (campo) campo.type = casilla.checked ? 'text' : 'password';
+      }
+    });
+  }
+</script>

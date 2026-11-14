@@ -1,0 +1,19 @@
+---
+interface Props {
+  asignatura: { id: number; nombre: string };
+}
+
+const { asignatura } = Astro.props;
+const { equiposDeAsignatura, experienciasDe, resumen } = Astro.locals.inv;
+const exps = experienciasDe(asignatura.id);
+const r = resumen(equiposDeAsignatura(asignatura.id));
+---
+
+<a href={`/asignaturas/${asignatura.id}`} class="tarjeta-asig">
+  <h3 class="tarjeta-asig__titulo">{asignatura.nombre}</h3>
+  <p class="tarjeta-asig__datos">
+    <span><strong>{exps.length}</strong> {exps.length === 1 ? 'experiencia' : 'experiencias'}</span>
+    <span><strong>{r.equipos}</strong> {r.equipos === 1 ? 'equipo' : 'equipos'}</span>
+    <span><strong>{r.unidades}</strong> {r.unidades === 1 ? 'unidad' : 'unidades'}</span>
+  </p>
+</a>

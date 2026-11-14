@@ -1,0 +1,88 @@
+---
+import '../css/base.css';
+import '../css/componentes.css';
+
+interface Props {
+  titulo: string;
+  descripcion?: string;
+  /** Oculta el menú (inicio de sesión y registro). */
+  sinMenu?: boolean;
+}
+
+const { titulo, descripcion = 'Inventario de equipos de laboratorio.', sinMenu = false } = Astro.props;
+const { usuario, aviso, errorApi } = Astro.locals;
+const ruta = Astro.url.pathname;
+const enlaces = [
+  { href: '/', texto: 'Inicio' },
+  { href: '/inventario', texto: 'Inventario' },
+  { href: '/laboratorios', texto: 'Laboratorios' },
+  { href: '/importar', texto: 'Importar Excel' },
+];
+const activo = (href: string) => (href === '/' ? ruta === '/' : ruta.startsWith(href));
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={descripcion} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{titulo} · Inventario de Laboratorios</title>
+  </head>
+  <body>
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+    {usuario && !sinMenu && (
+      <div class="subbarra">
+        <div class="contenedor subbarra__fila">
+          <span>Sesión de <strong>{usuario.nombre}</strong></span>
+          <a href="/cambiar-contrasena">Cambiar contraseña</a>
+          <form method="post" action="/salir">
+            <button type="submit">Cerrar sesión</button>
+          </form>
+        </div>
+      </div>
+    )}
+    <header class="barra">
+      <div class="contenedor barra__fila">
+        <a href="/" class="marca">
+          <strong>Laboratorios de Física</strong>
+          <small>Inventario de equipos</small>
+        </a>
+        {usuario && !sinMenu && (
+          <nav class="nav" aria-label="Menú principal">
+            {enlaces.map((e) => (
+              <a href={e.href} class:list={['nav__enlace', { 'is-activo': activo(e.href) }]} aria-current={activo(e.href) ? 'page' : undefined}>
+                {e.texto}
+              </a>
+            ))}
+          </nav>
+        )}
+      </div>
+    </header>
+
+    {sinMenu ? (
+      <main class="pagina-sola" id="contenido">
+        <slot />
+      </main>
+    ) : (
+      <main class="contenedor principal" id="contenido">
+        {aviso && (
+          <div class="mensaje mensaje--ok" role="status">
+            <strong>{aviso}</strong>
+          </div>
+        )}
+        {errorApi && (
+          <div class="mensaje mensaje--error" role="alert">
+            <strong>No se pudieron cargar los datos.</strong> {errorApi}
+          </div>
+        )}
+        <slot />
+      </main>
+    )}
+
+    <footer class="pie contenedor">
+      Inventario de los laboratorios de Física. Si necesitas ayuda, comunícate con el administrador.
+    </footer>
+  </body>
+</html>

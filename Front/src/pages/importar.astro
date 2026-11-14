@@ -1,0 +1,114 @@
+---
+// Subida de un Excel (.xlsx). El formulario se envía a esta página; el servidor de Astro lo reenvía a
+// Django y muestra el resultado.
+import Layout from '../layouts/Layout.astro';
+import Cifra from '../components/Cifra.astro';
+import FormularioImportar from '../components/FormularioImportar.astro';
+import { crearInventario } from '../data/inventario.js';
+
+const { api } = Astro.locals;
+let resultado: any = null;
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formulario = await Astro.request.formData();
+    const archivo = formulario.get('archivo');
+    if (!(archivo instanceof File) || archivo.size === 0) throw new Error('Selecciona un archivo .xlsx.');
+    if (formulario.get('laboratorio') && formulario.get('laboratorio') !== '__nuevo') formulario.delete('laboratorio_nuevo');
+    else formulario.delete('laboratorio');
+    resultado = await api.importar(formulario);
+    // Se vuelve a pedir el inventario para que aparezca el laboratorio recién creado.
+    Astro.locals.inv = crearInventario(await api.inventario());
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+    Astro.response.status = 400;
+  }
+}
+
+const { laboratorios } = Astro.locals.inv;
+const historial: any[] = await api.importaciones().catch(() => []);
+const fecha = (iso: string) =>
+  new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Bogota' }).format(new Date(iso));
+---
+
+<Layout titulo="Cargar Excel">
+  <section class="encabezado encabezado--compacto">
+    <h1>Cargar inventario desde Excel</h1>
+    <p class="encabezado__texto">
+      Sube un archivo .xlsx con tu inventario. Los datos se guardan en tu cuenta y se ven de inmediato en la página.
+    </p>
+  </section>
+
+  {error && (
+    <div class="mensaje mensaje--error" role="alert">
+      <strong>No se pudo cargar el archivo.</strong> {error}
+    </div>
+  )}
+
+  {resultado && (
+    <section class="mensaje mensaje--ok" role="status">
+      <h2>Archivo cargado en {resultado.laboratorio.nombre}</h2>
+      <p>
+        Hoja «{resultado.hoja}»: {resultado.experiencias_en_archivo} experiencias y {resultado.equipos_en_archivo} equipos.
+      </p>
+      <div class="cifras cifras--compactas">
+        <Cifra valor={resultado.experiencias_creadas} etiqueta="Experiencias nuevas" />
+        <Cifra valor={resultado.experiencias_actualizadas} etiqueta="Experiencias actualizadas" />
+        <Cifra valor={resultado.equipos_creados} etiqueta="Equipos nuevos" />
+        <Cifra valor={resultado.equipos_actualizados} etiqueta="Equipos actualizados" />
+      </div>
+      {resultado.sincronizar
+        ? (resultado.equipos_eliminados > 0 || resultado.experiencias_eliminadas > 0) && (
+            <p>Se eliminaron {resultado.experiencias_eliminadas} experiencias y {resultado.equipos_eliminados} equipos que no estaban en el archivo.</p>
+          )
+        : resultado.equipos_no_incluidos > 0 && (
+            <p>{resultado.equipos_no_incluidos} equipos que ya existían no aparecen en el archivo; se conservaron sin cambios.</p>
+          )}
+      {resultado.advertencias.length > 0 && (
+        <details>
+          <summary>Ver {resultado.advertencias.length} advertencias</summary>
+          <ul>{resultado.advertencias.map((a: string) => <li>{a}</li>)}</ul>
+        </details>
+      )}
+      <div class="acciones">
+        <a class="boton" href={`/inventario?lab=${resultado.laboratorio.id}`}>Ver los equipos de este laboratorio</a>
+        <a class="boton boton--secundario" href="/">Ir al inicio</a>
+      </div>
+    </section>
+  )}
+
+  <div class="tarjeta" style="margin-bottom:2.5rem">
+    <FormularioImportar laboratorios={laboratorios} />
+  </div>
+
+  {historial.length > 0 && (
+    <section class="bloque">
+      <div class="bloque__cabecera"><h2>Últimas cargas</h2></div>
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Archivo</th>
+              <th scope="col">Laboratorio</th>
+              <th scope="col" class="num">Equipos nuevos</th>
+              <th scope="col" class="num">Actualizados</th>
+            </tr>
+          </thead>
+          <tbody>
+            {historial.map((h) => (
+              <tr>
+                <td data-titulo="Fecha">{fecha(h.fecha)}</td>
+                <td data-titulo="Archivo">{h.archivo}</td>
+                <td data-titulo="Laboratorio">{h.laboratorio ?? '—'}</td>
+                <td data-titulo="Equipos nuevos" class="num">{h.resumen.equipos_creados ?? 0}</td>
+                <td data-titulo="Actualizados" class="num">{h.resumen.equipos_actualizados ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+</Layout>

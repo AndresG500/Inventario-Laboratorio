@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Cifra from '../components/Cifra.astro';
+import AsignaturaCard from '../components/AsignaturaCard.astro';
+import FormularioImportar from '../components/FormularioImportar.astro';
+
+const { usuario, errorApi } = Astro.locals;
+const { asignaturas, laboratorios, experiencias, experienciasDe, resumen } = Astro.locals.inv;
+const total = resumen();
+const sinDatos = !errorApi && laboratorios.length === 0;
+const conExperiencias = asignaturas.filter((a) => experienciasDe(a.id).length > 0);
+const pendientes = [
+  { valor: total.equipos - total.conEstado, texto: 'equipos sin estado registrado', href: '/inventario?estado=vacio' },
+  { valor: total.malos, texto: 'equipos dañados', href: '/inventario?estado=malo' },
+  { valor: total.sinReferencia, texto: 'equipos sin referencia', href: '/inventario?q=sin%20referencia' },
+  { valor: total.sinNombre, texto: 'equipos sin nombre', href: '/inventario?q=sin%20nombre' },
+].filter((p) => p.valor > 0);
+---
+
+<Layout titulo="Inicio">
+  {sinDatos ? (
+    <>
+      <section class="encabezado">
+        <p class="antetitulo">Bienvenida</p>
+        <h1>Hola, {usuario?.nombre}</h1>
+        <p class="encabezado__texto">
+          Todavía no tienes equipos registrados. Elige cómo quieres empezar: puedes cargar el inventario que ya tienes
+          en Excel o registrar todo a mano.
+        </p>
+      </section>
+
+      <div class="bienvenida">
+        <section class="tarjeta" aria-labelledby="opcion-excel">
+          <span class="paso" aria-hidden="true">1</span>
+          <h2 id="opcion-excel">Cargar un archivo de Excel</h2>
+          <p>Es la forma más rápida si ya tienes tu inventario en una hoja de cálculo.</p>
+          <FormularioImportar laboratorios={laboratorios} />
+        </section>
+
+        <section class="tarjeta" aria-labelledby="opcion-mano">
+          <span class="paso" aria-hidden="true">2</span>
+          <h2 id="opcion-mano">Empezar desde cero</h2>
+          <p>Crea primero un laboratorio. Después podrás añadirle experiencias y, a cada experiencia, sus equipos.</p>
+          <a class="boton boton--secundario" href="/laboratorios#nuevo">Crear mi primer laboratorio</a>
+        </section>
+      </div>
+    </>
+  ) : (
+    <>
+      <section class="encabezado">
+        <p class="antetitulo">Mi inventario</p>
+        <h1>Hola, {usuario?.nombre}</h1>
+        <p class="encabezado__texto">Aquí tienes el resumen de tus laboratorios. Elige una asignatura o ve al inventario completo.</p>
+        <div class="acciones">
+          <a class="boton" href="/inventario">Ver todos los equipos</a>
+          <a class="boton boton--secundario" href="/equipos/nuevo">Añadir un equipo</a>
+          <a class="boton boton--secundario" href="/importar">Cargar un Excel</a>
+        </div>
+      </section>
+
+      <section class="cifras" aria-label="Resumen">
+        <Cifra valor={laboratorios.length} etiqueta={laboratorios.length === 1 ? 'Laboratorio' : 'Laboratorios'} />
+        <Cifra valor={experiencias.length} etiqueta="Experiencias" />
+        <Cifra valor={total.equipos} etiqueta="Equipos registrados" />
+        <Cifra valor={total.unidades} etiqueta="Unidades" nota="Suma de las cantidades" />
+      </section>
+
+      {conExperiencias.length > 0 && (
+        <section class="bloque">
+          <div class="bloque__cabecera">
+            <h2>Asignaturas</h2>
+          </div>
+          <div class="rejilla rejilla--asig">
+            {conExperiencias.map((a) => <AsignaturaCard asignatura={a} />)}
+          </div>
+        </section>
+      )}
+
+      {pendientes.length > 0 && (
+        <section class="bloque">
+          <div class="bloque__cabecera">
+            <div>
+              <h2>Datos por revisar</h2>
+              <p class="bloque__sub">Haz clic en una línea para ver esos equipos.</p>
+            </div>
+          </div>
+          <ul class="lista-pendientes">
+            {pendientes.map((p) => (
+              <li><a href={p.href}><strong>{p.valor}</strong> {p.texto}</a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )}
+</Layout>

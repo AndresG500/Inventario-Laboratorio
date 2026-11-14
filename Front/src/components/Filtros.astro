@@ -1,0 +1,56 @@
+---
+// Formulario de filtros de /inventario. El script de pages/inventario.astro lee estos campos
+// por su atributo name (q, asig, lab, exp, estado).
+import { legible } from '../data/inventario.js';
+
+const { asignaturas, laboratorios, experiencias } = Astro.locals.inv;
+const grupos = asignaturas
+  .map((a) => ({ id: a.id, nombre: a.nombre, exps: experiencias.filter((x) => x.asignatura === a.id) }))
+  .concat([{ id: '' as any, nombre: 'Sin asignatura', exps: experiencias.filter((x) => !x.asignatura) }])
+  .filter((g) => g.exps.length > 0);
+---
+
+<form class="filtros" id="filtros" role="search" onsubmit="return false">
+  <div class="campo campo--busqueda">
+    <label for="filtro-q">Buscar</label>
+    <input id="filtro-q" name="q" type="search" placeholder="Nombre o referencia" autocomplete="off" />
+  </div>
+  <div class="campo">
+    <label for="filtro-asig">Asignatura</label>
+    <select id="filtro-asig" name="asig">
+      <option value="">Todas</option>
+      {asignaturas.map((a) => <option value={a.id}>{a.nombre}</option>)}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="filtro-lab">Laboratorio</label>
+    <select id="filtro-lab" name="lab">
+      <option value="">Todos</option>
+      {laboratorios.map((l) => <option value={l.id}>{l.nombre}</option>)}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="filtro-exp">Experiencia</label>
+    <select id="filtro-exp" name="exp">
+      <option value="">Todas</option>
+      {grupos.map((g) => (
+        <optgroup label={g.nombre}>
+          {g.exps.map((x) => <option value={x.id} data-lab={x.laboratorio} data-asig={g.id}>{legible(x.titulo)}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="filtro-estado">Estado</label>
+    <select id="filtro-estado" name="estado">
+      <option value="">Todos</option>
+      <option value="ok">Operativo</option>
+      <option value="aviso">En reparación</option>
+      <option value="malo">Dañado</option>
+      <option value="baja">Dado de baja</option>
+      <option value="neutro">Otro estado</option>
+      <option value="vacio">Sin registrar</option>
+    </select>
+  </div>
+  <button type="reset" class="boton boton--secundario">Quitar filtros</button>
+</form>

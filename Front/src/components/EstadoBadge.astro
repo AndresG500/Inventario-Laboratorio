@@ -1,0 +1,11 @@
+---
+import { estadoDe } from '../data/inventario.js';
+
+interface Props {
+  estado: string | null;
+}
+
+const { etiqueta, tono } = estadoDe(Astro.props.estado);
+---
+
+<span class={`estado estado--${tono}`}>{etiqueta}</span>

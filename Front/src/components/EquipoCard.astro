@@ -1,0 +1,41 @@
+---
+import EstadoBadge from './EstadoBadge.astro';
+import { legible } from '../data/inventario.js';
+
+interface Props {
+  equipo: {
+    id: number;
+    nombre: string | null;
+    marca: string | null;
+    referencia: string | null;
+    cantidad: number | null;
+    estado: string | null;
+    imagen: string | null;
+    componentes: unknown[];
+  };
+}
+
+const { equipo } = Astro.props;
+const nombre = equipo.nombre ? legible(equipo.nombre) : null;
+const componentes = equipo.componentes?.length ?? 0;
+---
+
+<button type="button" class="tarjeta-eq" data-equipo={equipo.id}>
+  <span class="tarjeta-eq__imagen">
+    {equipo.imagen
+      ? <img src={equipo.imagen} alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'tarjeta-eq__sin-imagen',textContent:'Sin imagen'}))" />
+      : <span class="tarjeta-eq__sin-imagen">Sin imagen</span>}
+  </span>
+  <span class="tarjeta-eq__cuerpo">
+    {nombre ? <span class="tarjeta-eq__nombre">{nombre}</span> : <span class="tarjeta-eq__nombre sin-dato">Nombre sin registrar</span>}
+    <span class="tarjeta-eq__meta">
+      {[equipo.marca, equipo.referencia ? `Ref. ${equipo.referencia}` : 'Sin referencia'].filter(Boolean).join(' · ')}
+    </span>
+    <span class="tarjeta-eq__pie">
+      <span class="cantidad">Cantidad: {equipo.cantidad ?? '—'}</span>
+      {componentes > 0 && <span>{componentes} {componentes === 1 ? 'componente' : 'componentes'}</span>}
+      <EstadoBadge estado={equipo.estado} />
+    </span>
+    <span class="tarjeta-eq__ver">Ver detalle</span>
+  </span>
+</button>

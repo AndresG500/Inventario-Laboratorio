@@ -1,0 +1,75 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Cifra from '../../components/Cifra.astro';
+import EquipoCard from '../../components/EquipoCard.astro';
+import PanelEquipo from '../../components/PanelEquipo.astro';
+import { legible, temasDe } from '../../data/inventario.js';
+
+const { asignaturaDe, equiposDe, experienciaDe, laboratorioDe, resumen } = Astro.locals.inv;
+const experiencia = experienciaDe(Astro.params.id);
+if (!experiencia) return Astro.rewrite('/404');
+const lab = laboratorioDe(experiencia.laboratorio);
+const asig = asignaturaDe(experiencia.asignatura);
+const lista = equiposDe(experiencia.id);
+const r = resumen(lista);
+const temas = temasDe(experiencia);
+const titulo = legible(experiencia.titulo);
+---
+
+<Layout titulo={titulo}>
+  <nav class="migas" aria-label="Ruta">
+    <a href="/laboratorios">Laboratorios</a>
+    <span aria-hidden="true">/</span>
+    <a href={`/laboratorios/${lab?.id}`}>{lab?.nombre}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{titulo}</span>
+  </nav>
+
+  <section class="encabezado encabezado--compacto">
+    <span class="etiqueta">{[asig?.nombre ?? 'Sin asignatura', lab?.nombre, `Ítem ${experiencia.item}`].join(' · ')}</span>
+    <h1 style="margin-top:.5rem">{titulo}</h1>
+    {temas.length > 0 && (
+      <ul class="temas">
+        {temas.map((t) => <li>{t}</li>)}
+      </ul>
+    )}
+    <div class="acciones" style="margin-top:1.25rem">
+      <a class="boton" href={`/equipos/nuevo?experiencia=${experiencia.id}`}>Añadir un equipo</a>
+      <a class="boton boton--secundario" href={`/experiencias/${experiencia.id}/editar`}>Editar experiencia</a>
+      <a class="boton boton--peligro-suave" href={`/eliminar?tipo=experiencia&id=${experiencia.id}`}>Eliminar experiencia</a>
+    </div>
+  </section>
+
+  <section class="cifras cifras--compactas" aria-label="Resumen">
+    <Cifra valor={experiencia.kits ?? '—'} etiqueta="Kits" />
+    <Cifra valor={r.equipos} etiqueta="Equipos" />
+    <Cifra valor={r.unidades} etiqueta="Unidades" />
+    <Cifra valor={`${r.conEstado} de ${r.equipos}`} etiqueta="Con estado registrado" />
+  </section>
+
+  {(experiencia.descripcion || experiencia.observacion) && (
+    <details class="descripcion">
+      <summary>Ver la descripción del equipo</summary>
+      {experiencia.descripcion && <p>{legible(experiencia.descripcion)}</p>}
+      {experiencia.observacion && <p><strong>Observación:</strong> {legible(experiencia.observacion)}</p>}
+    </details>
+  )}
+
+  <section class="bloque">
+    <div class="bloque__cabecera">
+      <div>
+        <h2>Equipos</h2>
+        <p class="bloque__sub">Haz clic en un equipo para ver su detalle, editarlo o eliminarlo.</p>
+      </div>
+    </div>
+    {lista.length > 0 ? (
+      <div class="rejilla rejilla--eq">
+        {lista.map((e) => <EquipoCard equipo={e} />)}
+      </div>
+    ) : (
+      <p>Esta experiencia aún no tiene equipos. Usa el botón «Añadir un equipo».</p>
+    )}
+  </section>
+
+  <PanelEquipo />
+</Layout>

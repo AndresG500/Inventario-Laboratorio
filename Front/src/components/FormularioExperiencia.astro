@@ -1,0 +1,30 @@
+---
+import Campo from './Campo.astro';
+
+interface Props {
+  valores: Record<string, unknown>;
+  errores?: Record<string, string[]>;
+}
+
+const { valores, errores = {} } = Astro.props;
+const { laboratorios, asignaturas } = Astro.locals.inv;
+---
+
+<div class="formulario__fila">
+  <Campo nombre="laboratorio" etiqueta="Laboratorio" tipo="select" requerido valor={valores.laboratorio} errores={errores}
+    vacio="Elige un laboratorio" opciones={laboratorios.map((l) => ({ valor: l.id, texto: l.nombre }))} />
+  <Campo nombre="item" etiqueta="Número de ítem" tipo="number" min="1" valor={valores.item} errores={errores}
+    ayuda="Si lo dejas vacío se asigna el siguiente número." />
+</div>
+<Campo nombre="titulo" etiqueta="Título de la experiencia" requerido maxlength="255" valor={valores.titulo} errores={errores} />
+<div class="formulario__fila">
+  <Campo nombre="asignatura" etiqueta="Asignatura" tipo="select" valor={valores.asignatura} errores={errores}
+    vacio="Sin asignatura" opciones={asignaturas.map((a) => ({ valor: a.id, texto: a.nombre }))} />
+  <Campo nombre="asignatura_nueva" etiqueta="O escribe una asignatura nueva" maxlength="150" valor={valores.asignatura_nueva}
+    errores={errores} ayuda="Úsalo solo si la asignatura no está en la lista." />
+</div>
+<Campo nombre="kits" etiqueta="Número de kits" tipo="number" min="0" valor={valores.kits} errores={errores} />
+<Campo nombre="temas" etiqueta="Temas" tipo="textarea" valor={valores.temas} errores={errores}
+  ayuda="Sepáralos con comas. Por ejemplo: Leyes de Newton, Movimiento uniforme." />
+<Campo nombre="descripcion" etiqueta="Descripción del equipo" tipo="textarea" valor={valores.descripcion} errores={errores} />
+<Campo nombre="observacion" etiqueta="Observación" tipo="textarea" valor={valores.observacion} errores={errores} />

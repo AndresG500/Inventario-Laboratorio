@@ -1,0 +1,66 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Campo from '../components/Campo.astro';
+import { iniciarSesion } from '../lib/api.js';
+import { intentar } from '../lib/formularios.js';
+import { guardarSesion, rutaSegura } from '../lib/sesion.js';
+
+const siguiente = rutaSegura(Astro.url.searchParams.get('siguiente'));
+let email = '';
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  email = String(f.get('email') ?? '').trim();
+  const password = String(f.get('password') ?? '');
+  const r = await intentar(() => iniciarSesion(email, password));
+  if (r.resultado) {
+    guardarSesion(Astro.cookies, Astro.url, r.resultado.token);
+    return Astro.redirect(siguiente);
+  }
+  error = r.error;
+  errores = r.campos;
+  Astro.response.status = 400;
+}
+---
+
+<Layout titulo="Iniciar sesión" sinMenu>
+  <div class="tarjeta-login">
+    <h1>Iniciar sesión</h1>
+    <p>Escribe el correo con el que te registraste y tu contraseña.</p>
+
+    {error && (
+      <div class="mensaje mensaje--error" role="alert">
+        <strong>{error}</strong>
+      </div>
+    )}
+
+    <form method="post" class="formulario">
+      <Campo nombre="email" etiqueta="Correo electrónico" tipo="email" requerido autocomplete="username" valor={email} errores={errores} autofocus={!email} />
+      <Campo nombre="password" etiqueta="Contraseña" tipo="password" requerido autocomplete="current-password" errores={errores} autofocus={!!email} />
+      <label class="casilla">
+        <input type="checkbox" data-mostrar="password" />
+        <span>Mostrar la contraseña</span>
+      </label>
+      <button type="submit" class="boton">Entrar</button>
+    </form>
+
+    <hr style="border:0;border-top:1px solid var(--borde);margin:1.5rem 0" />
+    <p><strong>¿Es tu primera vez?</strong></p>
+    <a class="boton boton--secundario" href="/registro">Crear una cuenta</a>
+    <p class="nota" style="margin-top:1.25rem"><strong>¿Olvidaste tu contraseña?</strong> Pide al administrador que te asigne una nueva.</p>
+  </div>
+</Layout>
+
+<script>
+  // Casillas "Mostrar la contraseña"
+  for (const casilla of document.querySelectorAll<HTMLInputElement>('[data-mostrar]')) {
+    casilla.addEventListener('change', () => {
+      for (const nombre of casilla.dataset.mostrar!.split(',')) {
+        const campo = document.querySelector<HTMLInputElement>(`input[name="${nombre}"]`);
+        if (campo) campo.type = casilla.checked ? 'text' : 'password';
+      }
+    });
+  }
+</script>

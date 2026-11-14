@@ -1,0 +1,50 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FormularioExperiencia from '../../components/FormularioExperiencia.astro';
+import { datosDe, intentar } from '../../lib/formularios.js';
+import { avisar } from '../../lib/sesion.js';
+
+const CAMPOS = ['laboratorio', 'item', 'titulo', 'asignatura', 'asignatura_nueva', 'kits', 'temas', 'descripcion', 'observacion'];
+const { laboratorios, laboratorioDe } = Astro.locals.inv;
+let error: string | null = null;
+let errores: Record<string, string[]> = {};
+let valores: Record<string, unknown> = { laboratorio: Astro.url.searchParams.get('laboratorio') ?? (laboratorios.length === 1 ? laboratorios[0].id : '') };
+
+if (Astro.request.method === 'POST') {
+  valores = datosDe(await Astro.request.formData(), CAMPOS);
+  const r = await intentar(() => Astro.locals.api.crear('experiencias', valores));
+  if (r.resultado) {
+    avisar(Astro.cookies, Astro.url, 'Se creó la experiencia. Ahora puedes añadirle equipos.');
+    return Astro.redirect(`/experiencias/${r.resultado.id}`);
+  }
+  ({ error, campos: errores } = r);
+  Astro.response.status = 400;
+}
+
+const lab = laboratorioDe(valores.laboratorio);
+const volver = lab ? `/laboratorios/${lab.id}` : '/laboratorios';
+---
+
+<Layout titulo="Nueva experiencia">
+  <section class="encabezado encabezado--compacto">
+    <h1>Nueva experiencia</h1>
+    <p class="encabezado__texto">Una experiencia es una práctica de laboratorio. Después de crearla podrás añadirle sus equipos.</p>
+  </section>
+
+  {laboratorios.length === 0 ? (
+    <div class="mensaje mensaje--info">
+      <p>Primero necesitas un laboratorio. <a href="/laboratorios#nuevo">Crea uno aquí</a>.</p>
+    </div>
+  ) : (
+    <div class="tarjeta">
+      {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+      <form method="post" class="formulario">
+        <FormularioExperiencia valores={valores} errores={errores} />
+        <div class="acciones">
+          <button type="submit" class="boton">Crear experiencia</button>
+          <a class="boton boton--secundario" href={volver}>Cancelar</a>
+        </div>
+      </form>
+    </div>
+  )}
+</Layout>

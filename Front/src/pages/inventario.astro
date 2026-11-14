@@ -1,0 +1,123 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Filtros from '../components/Filtros.astro';
+import EstadoBadge from '../components/EstadoBadge.astro';
+import PanelEquipo from '../components/PanelEquipo.astro';
+import { estadoDe, legible } from '../data/inventario.js';
+
+const { asignaturaDe, equipos, experienciaDe, laboratorioDe } = Astro.locals.inv;
+
+const filas = equipos.map((e) => {
+  const exp = experienciaDe(e.experiencia);
+  const nombre = e.nombre ? legible(e.nombre) : null;
+  // Texto en el que busca el filtro; incluye "sin nombre"/"sin referencia" para encontrar los faltantes.
+  const texto = [nombre ?? 'sin nombre', e.marca, e.referencia ?? 'sin referencia', exp?.titulo]
+    .concat((e.componentes ?? []).map((c) => `${c.nombre} ${c.referencia ?? ''}`))
+    .join(' ')
+    .toLowerCase();
+  return { e, exp, nombre, texto, tono: estadoDe(e.estado).tono, asig: asignaturaDe(exp?.asignatura) };
+});
+---
+
+<Layout titulo="Inventario">
+  <section class="encabezado encabezado--compacto encabezado__fila">
+    <div>
+      <h1>Inventario</h1>
+      <p class="encabezado__texto">Usa los filtros para encontrar un equipo y haz clic en él para ver su detalle, editarlo o eliminarlo.</p>
+    </div>
+    <a class="boton" href="/equipos/nuevo">Añadir un equipo</a>
+  </section>
+
+  <Filtros />
+
+  <p class="conteo" aria-live="polite">Se muestran <span id="conteo">{filas.length}</span> de {filas.length} equipos</p>
+
+  <div class="tabla-envoltura">
+    <table class="tabla" id="tabla-equipos">
+      <thead>
+        <tr>
+          <th scope="col">Equipo</th>
+          <th scope="col">Experiencia</th>
+          <th scope="col">Referencia</th>
+          <th scope="col" class="num">Cant.</th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map(({ e, exp, nombre, texto, tono, asig }) => (
+          <tr data-equipo={e.id} data-asig={asig?.id} data-lab={e.laboratorio} data-exp={e.experiencia} data-estado={tono} data-texto={texto} tabindex="0">
+            <td data-titulo="Equipo">
+              <span class="tabla__nombre">{nombre ?? <span class="sin-dato">Nombre sin registrar</span>}</span>
+              <span class="tabla__sub">{[laboratorioDe(e.laboratorio)?.nombre, e.marca].filter(Boolean).join(' · ')}</span>
+            </td>
+            <td data-titulo="Experiencia">
+              <span class="tabla__nombre-exp">{legible(exp?.titulo)}</span>
+              <span class="tabla__sub">{asig?.nombre}</span>
+            </td>
+            <td data-titulo="Referencia">{e.referencia ? <code>{e.referencia}</code> : <span class="sin-dato">Sin dato</span>}</td>
+            <td data-titulo="Cantidad" class="num">{e.cantidad ?? '—'}</td>
+            <td data-titulo="Estado"><EstadoBadge estado={e.estado} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <p class="vacio" id="sin-resultados" hidden>No hay equipos que coincidan con los filtros. Prueba con el botón «Quitar filtros».</p>
+  </div>
+
+  <PanelEquipo />
+</Layout>
+
+<script>
+  const form = document.getElementById('filtros') as HTMLFormElement;
+  const filas = [...document.querySelectorAll<HTMLTableRowElement>('#tabla-equipos tbody tr')];
+  const conteo = document.getElementById('conteo')!;
+  const vacio = document.getElementById('sin-resultados')!;
+  const selExp = form.elements.namedItem('exp') as HTMLSelectElement;
+  const grupos = [...selExp.querySelectorAll<HTMLOptGroupElement>('optgroup')];
+
+  // Los filtros iniciales pueden venir en la URL, por ejemplo /inventario?lab=pasco
+  const params = new URLSearchParams(location.search);
+  for (const [k, v] of params) {
+    const el = form.elements.namedItem(k) as HTMLInputElement | null;
+    if (el) el.value = v;
+  }
+
+  function aplicar() {
+    const f = new FormData(form);
+    const q = String(f.get('q') ?? '').trim().toLowerCase();
+    const asig = String(f.get('asig') ?? '');
+    const lab = String(f.get('lab') ?? '');
+    const estado = String(f.get('estado') ?? '');
+
+    // La lista de experiencias se limita a la asignatura y al laboratorio elegidos.
+    for (const op of selExp.querySelectorAll<HTMLOptionElement>('option[data-lab]')) {
+      op.hidden = (!!lab && op.dataset.lab !== lab) || (!!asig && op.dataset.asig !== asig);
+    }
+    for (const g of grupos) g.hidden = ![...g.children].some((op) => !(op as HTMLOptionElement).hidden);
+    if (selExp.selectedOptions[0]?.hidden) selExp.value = '';
+
+    let visibles = 0;
+    for (const tr of filas) {
+      const d = tr.dataset;
+      const ok = (!asig || d.asig === asig) && (!lab || d.lab === lab) && (!selExp.value || d.exp === selExp.value) && (!estado || d.estado === estado) && (!q || d.texto!.includes(q));
+      tr.hidden = !ok;
+      if (ok) visibles++;
+    }
+    conteo.textContent = String(visibles);
+    vacio.hidden = visibles > 0;
+
+    const nuevos = new URLSearchParams();
+    if (q) nuevos.set('q', q);
+    if (asig) nuevos.set('asig', asig);
+    if (lab) nuevos.set('lab', lab);
+    if (selExp.value) nuevos.set('exp', selExp.value);
+    if (estado) nuevos.set('estado', estado);
+    history.replaceState(null, '', nuevos.size ? `?${nuevos}` : location.pathname);
+  }
+
+  form.addEventListener('input', aplicar);
+  form.addEventListener('reset', () => setTimeout(aplicar));
+  filas.forEach((tr) => tr.addEventListener('keydown', (ev) => ev.key === 'Enter' && tr.click()));
+  aplicar();
+</script>
+

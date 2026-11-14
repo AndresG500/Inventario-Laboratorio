@@ -1,0 +1,33 @@
+---
+import Campo from './Campo.astro';
+import { legible, opcionesEstado } from '../data/inventario.js';
+
+interface Props {
+  valores: Record<string, unknown>;
+  errores?: Record<string, string[]>;
+}
+
+const { valores, errores = {} } = Astro.props;
+const { experiencias, laboratorioDe } = Astro.locals.inv;
+const opcionesExp = experiencias.map((x) => ({
+  valor: x.id,
+  texto: `${laboratorioDe(x.laboratorio)?.nombre ?? ''} · ${x.item}. ${legible(x.titulo)}`,
+}));
+---
+
+<Campo nombre="experiencia" etiqueta="Experiencia a la que pertenece" tipo="select" requerido valor={valores.experiencia}
+  errores={errores} vacio="Elige una experiencia" opciones={opcionesExp} />
+<Campo nombre="nombre" etiqueta="Nombre del equipo" requerido maxlength="255" valor={valores.nombre} errores={errores} />
+<div class="formulario__fila">
+  <Campo nombre="marca" etiqueta="Marca" maxlength="120" valor={valores.marca} errores={errores} />
+  <Campo nombre="referencia" etiqueta="Referencia" maxlength="255" valor={valores.referencia} errores={errores} />
+</div>
+<div class="formulario__fila">
+  <Campo nombre="cantidad" etiqueta="Cantidad" tipo="number" min="0" valor={valores.cantidad} errores={errores} />
+  <Campo nombre="estado" etiqueta="Estado" tipo="select" valor={valores.estado ?? ''} errores={errores}
+    opciones={opcionesEstado(valores.estado as string | null)} />
+</div>
+<Campo nombre="imagen" etiqueta="Enlace de una imagen" tipo="url" maxlength="500" valor={valores.imagen} errores={errores}
+  ayuda="Dirección web de una foto del equipo (empieza por https://)." />
+<Campo nombre="enlace" etiqueta="Página del producto" tipo="url" maxlength="500" valor={valores.enlace} errores={errores}
+  ayuda="Dirección web del fabricante o del catálogo." />

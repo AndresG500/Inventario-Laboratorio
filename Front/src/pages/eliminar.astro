@@ -1,0 +1,75 @@
+---
+// Confirmación antes de eliminar cualquier registro. Muestra qué más se borrará en cascada.
+import Layout from '../layouts/Layout.astro';
+import { legible } from '../data/inventario.js';
+import { intentar } from '../lib/formularios.js';
+import { avisar, rutaSegura } from '../lib/sesion.js';
+
+const inv = Astro.locals.inv;
+const tipo = Astro.url.searchParams.get('tipo') ?? '';
+const id = Astro.url.searchParams.get('id') ?? '';
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+type Tipo = { recurso: string; articulo: string; buscar: (id: string) => any; nombre: (o: any) => string; tambien: (o: any) => string[]; despues: (o: any) => string; cancelar: (o: any) => string };
+const TIPOS: Record<string, Tipo> = {
+  laboratorio: {
+    recurso: 'laboratorios', articulo: 'el laboratorio', buscar: inv.laboratorioDe, nombre: (l) => l.nombre,
+    tambien: (l) => [plural(inv.experienciasDeLaboratorio(l.id).length, 'experiencia', 'experiencias'), plural(inv.equiposDeLaboratorio(l.id).length, 'equipo', 'equipos')],
+    despues: () => '/laboratorios', cancelar: (l) => `/laboratorios/${l.id}`,
+  },
+  experiencia: {
+    recurso: 'experiencias', articulo: 'la experiencia', buscar: inv.experienciaDe, nombre: (x) => legible(x.titulo),
+    tambien: (x) => [plural(inv.equiposDe(x.id).length, 'equipo', 'equipos')],
+    despues: (x) => `/laboratorios/${x.laboratorio}`, cancelar: (x) => `/experiencias/${x.id}`,
+  },
+  equipo: {
+    recurso: 'equipos', articulo: 'el equipo', buscar: inv.equipoDe, nombre: (e) => (e.nombre ? legible(e.nombre) : 'Equipo sin nombre'),
+    tambien: (e) => [plural(e.componentes?.length ?? 0, 'componente', 'componentes')],
+    despues: (e) => `/experiencias/${e.experiencia}`, cancelar: (e) => `/experiencias/${e.experiencia}`,
+  },
+  componente: {
+    recurso: 'componentes', articulo: 'el componente', buscar: inv.componenteDe, nombre: (c) => c.nombre,
+    tambien: () => [], despues: (c) => `/equipos/${c.equipo}/editar#componentes`, cancelar: (c) => `/equipos/${c.equipo}/editar#componentes`,
+  },
+};
+
+const t = TIPOS[tipo];
+const objeto = t?.buscar(id);
+if (!t || !objeto) return Astro.rewrite('/404');
+
+const volver = Astro.url.searchParams.get('volver');
+const cancelar = rutaSegura(volver, t.cancelar(objeto));
+const nombre = t.nombre(objeto);
+const tambien = t.tambien(objeto).filter((texto) => !texto.startsWith('0 '));
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const r = await intentar(() => Astro.locals.api.eliminar(t.recurso, objeto.id));
+  if (!r.error) {
+    avisar(Astro.cookies, Astro.url, `Se eliminó ${t.articulo} «${nombre}».`);
+    // Para equipos se vuelve a la página de origen (por ejemplo, el inventario con sus filtros).
+    return Astro.redirect(tipo === 'equipo' && volver ? rutaSegura(volver, t.despues(objeto)) : t.despues(objeto));
+  }
+  error = r.error;
+  Astro.response.status = 400;
+}
+---
+
+<Layout titulo="Confirmar eliminación">
+  <section class="tarjeta confirmacion">
+    <p class="antetitulo" style="color:var(--malo)">Confirmar eliminación</p>
+    <h1>¿Eliminar {t.articulo} «{nombre}»?</h1>
+    {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+    {tambien.length > 0 ? (
+      <>
+        <p>Junto con {t.articulo} también se eliminarán:</p>
+        <ul>{tambien.map((x) => <li><strong>{x}</strong></li>)}</ul>
+      </>
+    ) : null}
+    <p><strong>Esta acción no se puede deshacer.</strong></p>
+    <form method="post" class="acciones">
+      <button type="submit" class="boton boton--peligro">Sí, eliminar</button>
+      <a class="boton boton--secundario" href={cancelar}>No, volver sin eliminar</a>
+    </form>
+  </section>
+</Layout>

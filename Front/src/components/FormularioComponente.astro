@@ -1,0 +1,21 @@
+---
+import Campo from './Campo.astro';
+import { opcionesEstado } from '../data/inventario.js';
+
+interface Props {
+  valores: Record<string, unknown>;
+  errores?: Record<string, string[]>;
+}
+
+const { valores, errores = {} } = Astro.props;
+---
+
+<input type="hidden" name="equipo" value={String(valores.equipo ?? '')} />
+<Campo nombre="nombre" etiqueta="Nombre del componente" requerido maxlength="255" valor={valores.nombre} errores={errores} />
+<div class="formulario__fila">
+  <Campo nombre="cantidad" etiqueta="Cantidad" tipo="number" min="0" valor={valores.cantidad} errores={errores} />
+  <Campo nombre="referencia" etiqueta="Referencia" maxlength="120" valor={valores.referencia} errores={errores} />
+  <Campo nombre="estado" etiqueta="Estado" tipo="select" valor={valores.estado ?? ''} errores={errores}
+    opciones={opcionesEstado(valores.estado as string | null)} />
+</div>
+<Campo nombre="enlace" etiqueta="Página del producto" tipo="url" maxlength="500" valor={valores.enlace} errores={errores} />

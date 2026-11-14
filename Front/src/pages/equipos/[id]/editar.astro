@@ -1,0 +1,128 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import EstadoBadge from '../../../components/EstadoBadge.astro';
+import FormularioComponente from '../../../components/FormularioComponente.astro';
+import FormularioEquipo from '../../../components/FormularioEquipo.astro';
+import { legible } from '../../../data/inventario.js';
+import { datosDe, intentar } from '../../../lib/formularios.js';
+import { avisar } from '../../../lib/sesion.js';
+
+const CAMPOS_EQUIPO = ['experiencia', 'nombre', 'marca', 'referencia', 'cantidad', 'estado', 'imagen', 'enlace'];
+const CAMPOS_COMPONENTE = ['equipo', 'nombre', 'cantidad', 'referencia', 'enlace', 'estado'];
+
+const equipo = Astro.locals.inv.equipoDe(Astro.params.id);
+if (!equipo) return Astro.rewrite('/404');
+const aqui = `/equipos/${equipo.id}/editar`;
+
+let valores: Record<string, unknown> = { ...equipo };
+let errores: Record<string, string[]> = {};
+let error: string | null = null;
+let valoresComp: Record<string, unknown> = { equipo: equipo.id };
+let erroresComp: Record<string, string[]> = {};
+let errorComp: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (f.get('accion') === 'componente') {
+    valoresComp = datosDe(f, CAMPOS_COMPONENTE);
+    const r = await intentar(() => Astro.locals.api.crear('componentes', valoresComp));
+    if (r.resultado) {
+      avisar(Astro.cookies, Astro.url, `Se añadió el componente «${r.resultado.nombre}».`);
+      return Astro.redirect(`${aqui}#componentes`);
+    }
+    ({ error: errorComp, campos: erroresComp } = r);
+  } else {
+    valores = datosDe(f, CAMPOS_EQUIPO);
+    const r = await intentar(() => Astro.locals.api.modificar('equipos', equipo.id, valores));
+    if (r.resultado) {
+      avisar(Astro.cookies, Astro.url, `Se guardaron los cambios de «${r.resultado.nombre}».`);
+      return Astro.redirect(`/experiencias/${r.resultado.experiencia}`);
+    }
+    ({ error, campos: errores } = r);
+  }
+  Astro.response.status = 400;
+}
+
+const nombre = equipo.nombre ? legible(equipo.nombre) : 'Equipo sin nombre';
+const componentes = equipo.componentes ?? [];
+---
+
+<Layout titulo={`Editar ${nombre}`}>
+  <nav class="migas" aria-label="Ruta">
+    <a href={`/experiencias/${equipo.experiencia}`}>Volver a la experiencia</a>
+  </nav>
+  <section class="encabezado encabezado--compacto">
+    <p class="antetitulo">Editar equipo</p>
+    <h1>{nombre}</h1>
+  </section>
+
+  <section class="tarjeta" style="margin-bottom:2rem">
+    <h2>Datos del equipo</h2>
+    {error && <div class="mensaje mensaje--error" role="alert"><strong>{error}</strong></div>}
+    <form method="post" class="formulario">
+      <input type="hidden" name="accion" value="equipo" />
+      <FormularioEquipo valores={valores} errores={errores} />
+      <div class="acciones">
+        <button type="submit" class="boton">Guardar cambios</button>
+        <a class="boton boton--secundario" href={`/experiencias/${equipo.experiencia}`}>Cancelar</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="tarjeta" id="componentes" style="margin-bottom:2rem">
+    <h2>Componentes</h2>
+    <p class="nota" style="margin-bottom:1rem">Piezas o accesorios que forman parte de este equipo.</p>
+    {componentes.length > 0 ? (
+      <div class="tabla-envoltura" style="margin-bottom:1.5rem">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Componente</th>
+              <th scope="col" class="num">Cantidad</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {componentes.map((c) => (
+              <tr>
+                <td data-titulo="Componente">
+                  <span class="tabla__nombre">{c.nombre}</span>
+                  {c.referencia && <span class="tabla__sub">Ref. {c.referencia}</span>}
+                </td>
+                <td data-titulo="Cantidad" class="num">{c.cantidad ?? '—'}</td>
+                <td data-titulo="Estado"><EstadoBadge estado={c.estado} /></td>
+                <td data-titulo="Acciones">
+                  <div class="acciones">
+                    <a class="boton boton--secundario boton--pequeno" href={`/componentes/${c.id}/editar`}>Editar</a>
+                    <a class="boton boton--peligro-suave boton--pequeno" href={`/eliminar?tipo=componente&id=${c.id}`}>Eliminar</a>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <p>Este equipo no tiene componentes registrados.</p>
+    )}
+
+    <fieldset class="formulario__grupo">
+      <legend>Añadir un componente</legend>
+      {errorComp && <div class="mensaje mensaje--error" role="alert"><strong>{errorComp}</strong></div>}
+      <form method="post" class="formulario formulario--ancho">
+        <input type="hidden" name="accion" value="componente" />
+        <FormularioComponente valores={valoresComp} errores={erroresComp} />
+        <div class="acciones">
+          <button type="submit" class="boton boton--secundario">Añadir componente</button>
+        </div>
+      </form>
+    </fieldset>
+  </section>
+
+  <section class="tarjeta confirmacion">
+    <h2>Eliminar este equipo</h2>
+    <p>Se borrará el equipo y sus componentes. Antes de borrar te pediremos confirmación.</p>
+    <a class="boton boton--peligro-suave" href={`/eliminar?tipo=equipo&id=${equipo.id}&volver=${encodeURIComponent(`/experiencias/${equipo.experiencia}`)}`}>Eliminar equipo</a>
+  </section>
+</Layout>

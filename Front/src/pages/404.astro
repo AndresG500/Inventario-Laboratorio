@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+Astro.response.status = 404;
+---
+
+<Layout titulo="No encontrado">
+  <section class="encabezado">
+    <h1>No encontramos esta página</h1>
+    <p class="encabezado__texto">Es posible que el registro se haya eliminado o que la dirección esté mal escrita.</p>
+    <a class="boton" href="/">Volver al inicio</a>
+  </section>
+</Layout>
