@@ -92,7 +92,6 @@ Pendiente o por decidir con el usuario:
 3. El proyecto es una demostración para la U. del Magdalena; si no se adopta, lo usará sobre todo ese profesor.
 4. Restos de la carpeta antigua `~/Documentos/Proyectos/Inventario` (archivos de root): se borran con
    `sudo rm -rf`.
-5. Todo está en el primer commit de la rama local `reorganizacion-y-registro` (sin subir a GitHub,
-   remoto `origin` = AndresG500/Inventario-Laboratorio). Falta decidir: subirla / fusionarla en `main`.
+5. Todo está subido a GitHub en `main` (remoto `origin` = AndresG500/Inventario-Laboratorio), desde 2026-11-14.
 6. Ideas no implementadas: recuperar la contraseña por correo (requiere SMTP), modo producción
    (DEBUG, build de Astro, gunicorn).
