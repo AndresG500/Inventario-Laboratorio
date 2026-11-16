@@ -67,6 +67,23 @@ docker compose logs -f frontend   # o web
 - Estados de equipo: OK, EN REPARACION, DAÑADO, DADO DE BAJA (o vacío). Los textos libres que vienen del
   Excel se muestran tal cual.
 
+## Despliegue (preparado el 2026-11-16)
+
+- **Backend → Render (plan gratis, Docker)** con `render.yaml` (Blueprint). Imagen: `Backend/Dockerfile` →
+  `iniciar.sh` (collectstatic + migrate + gunicorn en `$PORT`). En local, `compose.yaml` sobrescribe el
+  comando con `runserver`. Variables: `SECRET_KEY` (generada), `DATABASE_URL` (Neon), `DOMINIOS_REGISTRO`.
+  `RENDER_EXTERNAL_HOSTNAME` (la pone Render) entra en `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
+  `DEBUG` sale de la variable de entorno (apagado si no existe). Estáticos del admin con whitenoise.
+  El plan gratis se duerme a los 15 min (~1 min en despertar) y no tiene shell: `createsuperuser` se ejecuta
+  desde local con `docker compose run --rm -e DATABASE_URL='<neon>' web python manage.py createsuperuser`.
+- **Base de datos → Neon** (Postgres gratis, sin vencimiento). Si existe `DATABASE_URL` se usa en lugar de `POSTGRES_*`.
+- **Front → Vercel**, directorio raíz `Front/`, variable `DJANGO_API_URL` = URL de Render. `astro.config.mjs`
+  usa `@astrojs/vercel` si existe la variable `VERCEL`; si no, `@astrojs/node`. Límite de Vercel: 4,5 MB
+  por petición (afecta a los Excel que se suban).
+- Al cambiar dependencias del Front: `docker compose up -d --build --renew-anon-volumes frontend`
+  (el volumen anónimo de `node_modules` guarda las viejas). `Front/node_modules` del host es de root:
+  `bun add` hay que hacerlo en una copia aparte y traer `package.json` y `bun.lock`.
+
 ## Estado al 2026-11-14
 
 Hecho y probado de punta a punta (con curl y capturas en Firefox headless):

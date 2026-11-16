@@ -1,0 +1,21 @@
+# Blueprint de Render: crea el Backend (Django) a partir de este repositorio.
+# La base de datos está en Neon: pega su cadena de conexión en DATABASE_URL al crear el servicio.
+services:
+  - type: web
+    name: inventario-backend
+    runtime: docker
+    plan: free
+    region: virginia            # la más cercana a Colombia; crear el proyecto de Neon en AWS us-east-1
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
+    healthCheckPath: /admin/login/
+    buildFilter:
+      paths:
+        - Backend/**            # los cambios en Front/ no vuelven a desplegar el Backend
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false             # Render la pide al crear el servicio
+      - key: DOMINIOS_REGISTRO
+        value: unimagdalena.edu.co

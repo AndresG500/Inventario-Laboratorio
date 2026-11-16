@@ -8,3 +8,6 @@ sqlparse==0.6.0
 types-PyYAML==6.0.12.20261103
 typing_extensions==4.16.0
 openpyxl==3.1.5
+gunicorn==27.0.1
+whitenoise==6.12.0
+dj-database-url==3.1.2
