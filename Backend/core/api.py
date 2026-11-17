@@ -25,12 +25,3 @@ def leer_json(request) -> dict:
     except (ValueError, UnicodeDecodeError):
         return {}
     return datos if isinstance(datos, dict) else {}
-
-
-def salud(request):
-    """GET /api/salud/ — responde sin sesión ni consultas a la BD.
-
-    Sirve para el ping externo (cron-job.org, UptimeRobot) que evita que Render se duerma,
-    sin despertar a Neon ni gastar sus horas de cómputo.
-    """
-    return ok({"ok": True})
